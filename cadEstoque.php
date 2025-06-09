@@ -23,20 +23,25 @@ if (!$jsonParam) {
 }
 
 // Extrai e saneia os campos do JSON
-$idProduto  = intval($jsonParam['idProduto']  ?? 0);
-$nmProduto  = trim($jsonParam['nmProduto']   ?? '');
-$deProduto  = isset($jsonParam['deProduto']) 
-                ? trim($jsonParam['deProduto']) 
-                : null;
-$idMarca    = intval($jsonParam['idMarca']    ?? 0);
-$cdProduto  = trim($jsonParam['cdProduto']   ?? '');
+$dtEntrada = trim($jsonParam['dtEntrada'] ?? '');
+$qtEntrada = floatval($jsonParam['qtEntrada'] ?? 0);
+$vlEntrada = isset($jsonParam['vlEntrada']) ? floatval($jsonParam['vlEntrada']) : null;
+$idProduto = intval($jsonParam['idProduto'] ?? 0);
 
+// Validações básicas
+if (!$dtEntrada || !$qtEntrada || !$idProduto) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Campos obrigatórios ausentes ou inválidos.'
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
 // Prepara a instrução SQL
 $sql = "
-    INSERT INTO almoxarifado.almProduto 
-        (idProduto, nmProduto, deProduto, idMarca, cdProduto)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO almoxarifado.almEntradaEstoque 
+        (dtEntrada, qtEntrada, vlEntrada, idProduto)
+    VALUES (?, ?, ?, ?)
 ";
 
 $stmt = $con->prepare($sql);
@@ -48,27 +53,25 @@ if (!$stmt) {
     exit;
 }
 
-// Vincula parâmetros: i = integer, s = string
-// Ordem: idProduto (i), nmProduto (s), deProduto (s|null), idMarca (i), cdProduto (s)
+// Vincula parâmetros: s = string (data), d = double (decimal), i = integer
 $stmt->bind_param(
-    "issis",
-    $idProduto,
-    $nmProduto,
-    $deProduto,
-    $idMarca,
-    $cdProduto
+    "ssdi",
+    $dtEntrada,
+    $qtEntrada,
+    $vlEntrada,
+    $idProduto
 );
 
 // Executa e retorna resultado
 if ($stmt->execute()) {
     echo json_encode([
         'success' => true,
-        'message' => 'Produto inserido com sucesso!'
+        'message' => 'Entrada de estoque registrada com sucesso!'
     ], JSON_UNESCAPED_UNICODE);
 } else {
     echo json_encode([
         'success' => false,
-        'message' => 'Erro no registro do produto: ' . $stmt->error
+        'message' => 'Erro ao registrar entrada de estoque: ' . $stmt->error
     ], JSON_UNESCAPED_UNICODE);
 }
 
